@@ -1,0 +1,12 @@
+{
+  "name": "leoespinoel-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node serve.mjs",
+    "shoot": "node tools/shoot.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
