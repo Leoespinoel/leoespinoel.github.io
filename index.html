@@ -264,11 +264,20 @@
   .fon .field{position:absolute;inset:0;pointer-events:none;}
 
   /* ---------- newsletter + footer ---------- */
-  .news{padding:22vh var(--gutter) 18vh;text-align:center;}
+  .news{position:relative;padding:22vh var(--gutter) 18vh;text-align:center;overflow:hidden;}
+  .news > *:not(.news__nebula){position:relative;z-index:1;}
+  /* red nebula behind the newsletter: same two-player crossfade as the hero aurora, faded out at every edge so the section has no visible box */
+  .news__nebula{position:absolute;inset:0;z-index:0;pointer-events:none;mix-blend-mode:screen;opacity:.95;-webkit-mask-image:linear-gradient(180deg, transparent 3%, #000 28%, #000 64%, transparent 93%);mask-image:linear-gradient(180deg, transparent 3%, #000 28%, #000 64%, transparent 93%);}
+  /* the footage is dimmed behind the words and the form (inside the screen-blended group, black simply removes light) */
+  .news__nebula::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 44% 38% at 50% 47%, rgba(0,0,0,.5) 0%, rgba(0,0,0,.36) 55%, transparent 100%);}
+  @media (max-width:820px){ .news__nebula::after{background:radial-gradient(ellipse 90% 40% at 50% 46%, rgba(0,0,0,.5) 0%, rgba(0,0,0,.36) 55%, transparent 100%);} }
+  .nebula__live{position:absolute;inset:-10%;will-change:transform;}
+  .news__nebula video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;}
+  .news__nebula video:first-child{opacity:1;}
   .news h2{font-size:clamp(2.8rem, 7.6vw, 7.8rem);margin:26px 0 24px;}
   .news p{margin:0 auto 46px;max-width:44ch;color:var(--mist);}
   .news form{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:780px;margin:0 auto;}
-  .news input{flex:1 1 220px;min-width:0;height:54px;padding:0 24px;border-radius:999px;border:1px solid var(--hair);background:transparent;color:var(--white);font:inherit;font-size:16px;transition:border-color 300ms ease;}
+  .news input{flex:1 1 220px;min-width:0;height:54px;padding:0 24px;border-radius:999px;border:1px solid var(--hair);background:rgba(23,17,13,.55);color:var(--white);font:inherit;font-size:16px;transition:border-color 300ms ease;}
   .news input::placeholder{color:var(--dust);}
   .news input:focus{outline:none;border-color:var(--leaf);}
   .news .pill{height:54px;}
@@ -624,6 +633,7 @@
 
   <!-- ============ NEWSLETTER ============ -->
   <section class="news" id="newsletter">
+    <div class="news__nebula" id="nebula" aria-hidden="true"><div class="nebula__live"><video src="assets/nebula/nebula.mp4" poster="assets/nebula/nebula.jpg" muted playsinline preload="none" tabindex="-1"></video><video src="assets/nebula/nebula.mp4" muted playsinline preload="none" tabindex="-1"></video></div></div>
     <span class="label"><b>·</b> Newsletter</span>
     <h2 class="display" data-split>Stay close</h2>
     <p data-fade>Notes on music, design and building things that matter. Sent when there is something worth saying.</p>
@@ -872,10 +882,9 @@
 
   /* ---------- hero: the aurora ---------- */
   /* one short clip, two players: near the end of one, the other starts from zero and they crossfade, so the loop never jumps */
-  function aurora() {
-    const box = $('#aurora'); if (!box || RM) return;
+  function clipLoop(box) {
     const vids = $$('video', box), FADE = 1.8;
-    let cur = 0, swapping = false, seen = true;
+    let cur = 0, swapping = false;
     const play = (v) => v.play().catch(() => {});
     const tick = () => {
       const a = vids[cur], b = vids[1 - cur];
@@ -885,15 +894,31 @@
       gsap.to(a, { opacity: 0, duration: FADE, ease: 'sine.inOut', onComplete: () => { a.pause(); cur = 1 - cur; swapping = false; } });
     };
     vids.forEach((v) => v.addEventListener('timeupdate', tick));
-    play(vids[0]);
-    /* no decoding while the hero is off screen */
-    new IntersectionObserver(([e]) => { seen = e.isIntersecting; vids.forEach((v, i) => { if (!seen) v.pause(); else if (i === cur || swapping) play(v); }); }).observe(box);
+    /* no download and no decoding until the clip is nearly on screen, and none once it has left */
+    new IntersectionObserver(([e]) => vids.forEach((v, i) => { if (!e.isIntersecting) v.pause(); else if (i === cur || swapping) play(v); }), { rootMargin: '40% 0px' }).observe(box);
+  }
+  function aurora() {
+    const box = $('#aurora'); if (!box || RM) return;
+    clipLoop(box);
     gsap.to(box, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
     /* a slow sway over the footage; the two periods differ so the 8s clip never lines up with it the same way twice */
     const live = $('.aurora__live', box), wave = (vars, duration) => gsap.to(live, { ...vars, duration, ease: 'sine.inOut', yoyo: true, repeat: -1 });
     gsap.set(live, { xPercent: -4, skewX: -5 });
     const sweeps = [wave({ xPercent: 4 }, 17), wave({ skewX: 5 }, 11)];
     new IntersectionObserver(([e]) => sweeps.forEach((t) => t.paused(!e.isIntersecting))).observe(box);
+  }
+
+  /* ---------- newsletter: the nebula ---------- */
+  function nebula() {
+    const box = $('#nebula'); if (!box || RM) return;
+    clipLoop(box);
+    /* a slow breath and turn over the footage, on periods that never line up with the 8s clip */
+    const live = $('.nebula__live', box), wave = (vars, duration) => gsap.to(live, { ...vars, duration, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    gsap.set(live, { scale: 1, rotation: -2 });
+    const sweeps = [wave({ scale: 1.1 }, 19), wave({ rotation: 2 }, 13)];
+    new IntersectionObserver(([e]) => sweeps.forEach((t) => t.paused(!e.isIntersecting))).observe(box);
+    /* the parallax moves the footage, not the box: the fade mask stays locked to the section's edges */
+    gsap.fromTo(live, { yPercent: -4 }, { yPercent: 4, ease: 'none', scrollTrigger: { trigger: '#newsletter', start: 'top bottom', end: 'bottom top', scrub: true } });
   }
 
   /* ---------- hero: the floating field ---------- */
@@ -1178,6 +1203,7 @@
   document.fonts.ready.then(() => {
     fitAll();
     aurora();
+    nebula();
     heroMotion();
     scrollMotion();
     // the rail's triggers (and every other scroll position) are computed the instant the script runs, before the
