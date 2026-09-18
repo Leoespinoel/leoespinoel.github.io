@@ -330,6 +330,9 @@
     <span class="label beat__by" id="beat-by">— Colyn</span>
   </div>
 </div>
+<div class="beat" id="belief-beat" aria-hidden="true">
+  <div><p class="display beat__text" id="belief-beat-text"></p></div>
+</div>
 
 <!-- loader: the last reel picture is the hero's centre card -->
 <div id="loader" aria-hidden="true">
@@ -835,6 +838,7 @@
     if (!PHONE) gsap.fromTo('.fon', { clipPath: 'inset(14% 9% 0% 9% round 160px 160px 0px 0px)' }, { clipPath: 'inset(0% 0% 0% 0% round 0px 0px 0px 0px)', ease: 'none', scrollTrigger: { trigger: '.fon', start: 'top 92%', end: 'top 12%', scrub: .5 } });
     gsap.from('#foot-name .w', { yPercent: 105, duration: 1.4, ease: 'expo.out', stagger: .08, scrollTrigger: { trigger: 'footer', start: 'top 88%', once: true } });
     quoteBeat();
+    beliefBeat();
   }
 
   /* ---------- the Colyn quote: a timed moment between About me and Music Producer ----------
@@ -913,6 +917,61 @@
     ScrollTrigger.create({ trigger: music, start: 'top 85%',
       onEnter(st) {
         /* only a real scroll down out of About me: not a reload further down the page, not a menu jump */
+        if (played || busy || jumping || $('#loader') || performance.now() - born < 1200 || lenis.scroll > st.start + innerHeight * .7) return;
+        play();
+      } });
+  }
+
+  /* ---------- the belief line: a second timed moment, between Speaker and Podcast ----------
+     Same cover and scroll hold as the Colyn quote, different entrance: the red key words spin in from random
+     directions and land in their places first, then the words between them fade in to fill the gaps. */
+  function beliefBeat() {
+    const box = $('#belief-beat'), text = $('#belief-beat-text'), podcast = $('#podcast');
+    if (!box || !podcast || !lenis) return;
+    const WORDS = 'Beliefs shape imagination. Imagination shapes action. Action creates your reality.'.split(' ');
+    const HOT = /beliefs|imagination|action|reality/i;
+    const els = WORDS.map((w, i) => {
+      const el = document.createElement('span'); el.className = 'w' + (HOT.test(w) ? ' hot' : ''); el.textContent = w;
+      if (i) text.append(WORDS[i - 1].endsWith('.') ? document.createElement('br') : ' '); // one sentence to a line, at any width
+      text.append(el); return el;
+    });
+    const hot =els.filter((el) => el.classList.contains('hot')), rest = els.filter((el) => !el.classList.contains('hot'));
+    const rnd = (a, b) => a + Math.random() * (b - a), TAU = Math.PI * 2;
+    let played = false, busy = false;
+
+    function play() {
+      played = busy = true;
+      lenis.stop(); document.documentElement.classList.add('is-beat-locked'); box.classList.add('is-on');
+      gsap.set([text, ...els], { clearProps: 'all' });
+      gsap.to(['#cursor', '#peek'], { scale: 0, duration: .2, overwrite: true });
+      const far = Math.hypot(innerWidth, innerHeight) * .75; // far enough that every key word starts off screen
+      const order = gsap.utils.shuffle([...hot]);
+      order.forEach((el) => { const a = rnd(0, TAU); gsap.set(el, { x: Math.cos(a) * far, y: Math.sin(a) * far, rotation: rnd(540, 900) * (Math.random() < .5 ? -1 : 1), scale: .6, opacity: 0 }); });
+      gsap.set(rest, { opacity: 0, y: 14 });
+
+      const START = .15, EACH = .16, IN = 1.7, FILL = .8, GAP = .1, HOLD = 2.6;
+      const LANDED = START + EACH * (order.length - 1) + IN, FILLED = LANDED - .2 + GAP * (rest.length - 1) + FILL;
+      const land = () => lenis.scrollTo(podcast, { immediate: true, force: true });
+      const tl = gsap.timeline({ onComplete() {
+        box.classList.remove('is-on'); document.documentElement.classList.remove('is-beat-locked');
+        gsap.set(box, { autoAlpha: 0 }); lenis.start(); busy = false; box.onclick = null;
+      } });
+      box.onclick = () => tl.timeScale(4);
+      window.__len = Object.assign(window.__len || {}, { belief: tl }); // capture tools pause and step this
+      tl.to(box, { autoAlpha: 1, duration: .25, ease: 'power1.out' }, 0)
+        .to(order, { opacity: 1, duration: .3, ease: 'power1.out', stagger: EACH }, START)
+        .to(order, { x: 0, y: 0, rotation: 0, scale: 1, duration: IN, ease: 'power3.out', stagger: EACH }, START)
+        /* the key words are in place: the rest fades into the gaps, in reading order */
+        .to(rest, { opacity: 1, y: 0, duration: FILL, ease: 'power2.out', stagger: GAP }, LANDED - .2)
+        /* hold to read, then lift off the podcast room */
+        .add(land, FILLED + HOLD - .35)
+        .to(text, { yPercent: -14, autoAlpha: 0, duration: .4, ease: 'power3.in' }, FILLED + HOLD)
+        .to(box, { autoAlpha: 0, duration: .3 }, '>-0.15');
+    }
+    const born = performance.now();
+    ScrollTrigger.create({ trigger: podcast, start: 'top 85%',
+      onEnter(st) {
+        /* only a real scroll down out of Speaker: not a reload further down the page, not a menu jump */
         if (played || busy || jumping || $('#loader') || performance.now() - born < 1200 || lenis.scroll > st.start + innerHeight * .7) return;
         play();
       } });
