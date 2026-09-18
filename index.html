@@ -197,6 +197,7 @@
   .room__text .label{display:flex;gap:14px;margin-bottom:26px;}
   .room h2{font-size:clamp(2.5rem, 5.6vw, 5.6rem);margin-bottom:34px;}
   .room__text p{margin:0 0 1.1em;max-width:46ch;color:var(--mist);}
+  .room__text p em{font-style:normal;color:var(--leaf);}
   .room__text p.lead{color:var(--white);font-size:1.18rem;line-height:1.45;}
   .room .field{position:absolute;inset:0;pointer-events:none;}
 
@@ -245,7 +246,7 @@
   /* ---------- speaker ---------- */
   .speaker{padding:20vh var(--gutter);display:grid;grid-template-columns:1.25fr .75fr;gap:8vw;align-items:start;}
   .speaker .label{display:flex;gap:14px;margin-bottom:34px;}
-  .speaker blockquote{margin:0;font-size:clamp(1.9rem, 3.9vw, 4.1rem);}
+  .speaker blockquote{margin:0;font-size:clamp(1.9rem, 3.9vw, 4.1rem);color:var(--leaf);}
   .speaker blockquote .w{display:inline-block;}
   .speaker__side{padding-top:8px;}
   .speaker__side p{color:var(--mist);margin:0 0 1em;max-width:40ch;}
@@ -470,7 +471,7 @@
       <h2 class="display" data-split>Origin story</h2>
       <p class="lead" data-fade>I grew up in Mauritius before it became what it is today: reefs loud with colour, more sugarcane than concrete.</p>
       <p data-fade>I left to study finance in the Netherlands, found the money and missed the meaning, and joined the military to rebuild the discipline to go and look for it. Amsterdam showed me fashion from the inside, and Mr Marvis showed me a company can be built responsibly.</p>
-      <p data-fade>Everything since, the music, the design, the photographs, the talks and Force of Nature, comes from one instinct: I was handed a lot, and the point is to pay it forward.</p>
+      <p data-fade>Everything since, the music, the design, the photographs, the talks and Force of Nature, comes from one instinct: <em>create out of love, and others will feel it too.</em></p>
       <ol class="rows" data-fade>
         <li><div><small>i</small><strong>Mauritius</strong><small>Where it starts</small></div></li>
         <li><div><small>ii</small><strong>The Netherlands</strong><small>Finance, and the gap in it</small></div></li>
@@ -578,7 +579,7 @@
   <section class="speaker" id="speaker" data-room="speaker">
     <div>
       <span class="label"><b>06</b> Speaker</span>
-      <blockquote class="display" id="quote">“I was handed a lot. The only honest thing to do with it is pay it forward.”</blockquote>
+      <blockquote class="display" id="quote">“Create out of love, and others will feel it too.”</blockquote>
     </div>
     <div class="speaker__side">
       <figure class="float speaker__portrait" style="position:relative;left:auto;top:auto" data-speed=".6"><div class="float__clip" data-reveal><img src="assets/placeholder/p11.jpg" alt="Africa" loading="lazy"></div></figure>
