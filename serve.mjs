@@ -42,15 +42,27 @@ const server = http.createServer((req, res) => {
       filePath = path.join(filePath, 'index.html');
     }
 
-    fs.readFile(filePath, (err, data) => {
+    fs.stat(filePath, (err, stats) => {
       if (err) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found: ' + urlPath);
         return;
       }
       const ext = path.extname(filePath).toLowerCase();
-      res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-      res.end(data);
+      const type = MIME[ext] || 'application/octet-stream';
+      // Audio and video only start playing once the browser can fetch a byte range; without this, a large
+      // file (the aurora clip, the sound-toggle track) has to download in full before anything plays.
+      const range = req.headers.range;
+      if (range) {
+        const [startStr, endStr] = range.replace('bytes=', '').split('-');
+        const start = parseInt(startStr, 10);
+        const end = endStr ? parseInt(endStr, 10) : stats.size - 1;
+        res.writeHead(206, { 'Content-Type': type, 'Content-Range': `bytes ${start}-${end}/${stats.size}`, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1 });
+        fs.createReadStream(filePath, { start, end }).pipe(res);
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': stats.size });
+      fs.createReadStream(filePath).pipe(res);
     });
   });
 });
