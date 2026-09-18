@@ -664,7 +664,7 @@
       + `<g data-l>${eStem}${r(x[1], oy, W, u)}${eMid}${r(x[1], oy + H - u, W, u)}</g>`
       + `<g data-l>${r(x[2], oy, u, H)}${r(x[2] + W - u, oy, u, H)}<polygon points="${f(x[2])},${f(oy)} ${f(x[2] + u * 1.3)},${f(oy)} ${f(x[2] + W)},${f(oy + H)} ${f(x[2] + W - u * 1.3)},${f(oy + H)}"/></g>`;
   }
-  { const G = lenGeo(10), svg = $('#mark-svg'); svg.setAttribute('viewBox', `0 0 ${G.total} ${G.H}`); svg.innerHTML = lenMarkup(G, 0, 0); }
+  { const G = lenGeo(10), svg = $('#mark-svg'); svg.setAttribute('viewBox', `0 0 ${G.total} ${G.H}`); svg.innerHTML = lenMarkup(G, 0, 0, true); }
 
   /* ---------- fitted names ---------- */
   function fit(el) {
