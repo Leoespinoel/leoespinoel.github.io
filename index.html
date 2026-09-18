@@ -257,6 +257,16 @@
   .foot__row a:hover{color:var(--white);}
   .foot__row [aria-disabled]{opacity:.5;cursor:default;}
 
+  /* ---------- the quote beat (between About me and Music Producer) ---------- */
+  .beat{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--void);opacity:0;visibility:hidden;pointer-events:none;overflow:hidden;touch-action:none;cursor:pointer;}
+  .beat.is-on{pointer-events:auto;}
+  .beat__text{max-width:min(88vw, 1500px);text-align:center;font-size:clamp(1.7rem, 5vw, 5.2rem);line-height:1.04;}
+  .beat__text .w{display:inline-block;will-change:transform,opacity;}
+  .beat__text .hot{color:var(--leaf);}
+  .beat__by{display:block;text-align:center;margin-top:clamp(22px, 3.4vh, 40px);font-size:13px;opacity:0;}
+  @media (hover:none){ html.is-beat-locked{overflow:hidden;} }
+  html.is-beat-locked .cursor,html.is-beat-locked .peek{visibility:hidden;}
+
   .toast{position:fixed;left:50%;bottom:30px;z-index:70;transform:translate(-50%, 30px);padding:13px 22px;border-radius:999px;background:var(--white);color:var(--void);font-size:14px;opacity:0;pointer-events:none;transition:opacity 300ms ease, transform 600ms var(--ease);}
   .toast.is-on{opacity:1;transform:translate(-50%, 0);}
 
@@ -314,6 +324,12 @@
 <div class="cursor" id="cursor" aria-hidden="true">View</div>
 <div class="peek" id="peek" aria-hidden="true"><img src="assets/placeholder/p05.jpg" alt=""></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="beat" id="beat" aria-hidden="true">
+  <div>
+    <p class="display beat__text" id="beat-text"></p>
+    <span class="label beat__by" id="beat-by">— Colyn</span>
+  </div>
+</div>
 
 <!-- loader: the last reel picture is the hero's centre card -->
 <div id="loader" aria-hidden="true">
@@ -425,6 +441,7 @@
 
   <!-- ============ 02 MUSIC ============ -->
   <section class="room room--right" id="music" data-room="music">
+    <blockquote class="sr-only">“Floating between time and space, uncovering melodies and sequencing rhythms.” Colyn</blockquote>
     <div class="room__text">
       <span class="label"><b>02</b> Music Producer <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
       <h2 class="display" data-split>Records &amp; rooms</h2>
@@ -592,6 +609,7 @@
   if (!RM) document.documentElement.classList.add('motion');
 
   let lenis = null;
+  let jumping = false; // true while a menu / rail click glides to its section, so the quote beat stays out of the way
   if (!RM) {
     lenis = new Lenis({ lerp: .085, smoothWheel: true, wheelMultiplier: .9 });
     lenis.on('scroll', ScrollTrigger.update);
@@ -675,7 +693,7 @@
     const id = a.getAttribute('href'); if (id.length < 2) return;
     const target = $(id); if (!target) return;
     e.preventDefault(); setMenu(false);
-    if (lenis) { lenis.start(); lenis.scrollTo(target, { duration: 1.6, easing: (t) => 1 - Math.pow(1 - t, 4) }); } else target.scrollIntoView();
+    if (lenis) { jumping = true; lenis.start(); lenis.scrollTo(target, { duration: 1.6, easing: (t) => 1 - Math.pow(1 - t, 4), onComplete: () => { jumping = false; } }); } else target.scrollIntoView();
   }));
 
   /* ---------- rail ----------
@@ -777,6 +795,88 @@
     /* force of nature: the green room opens out of a rounded window */
     if (!PHONE) gsap.fromTo('.fon', { clipPath: 'inset(14% 9% 0% 9% round 160px 160px 0px 0px)' }, { clipPath: 'inset(0% 0% 0% 0% round 0px 0px 0px 0px)', ease: 'none', scrollTrigger: { trigger: '.fon', start: 'top 92%', end: 'top 12%', scrub: .5 } });
     gsap.from('#foot-name .w', { yPercent: 105, duration: 1.4, ease: 'expo.out', stagger: .08, scrollTrigger: { trigger: 'footer', start: 'top 88%', once: true } });
+    quoteBeat();
+  }
+
+  /* ---------- the Colyn quote: a timed moment between About me and Music Producer ----------
+     Same idea as the Force of Nature store's "Where mission and style collide": scrolling down into the music room
+     plays a full-screen beat once per page load while the scroll is held. The words first float about the screen at
+     random, then swirl around the centre (every word turning the same way, the radius closing in) into the sentence.
+     Under the cover the page moves to the top of the music room, so the quote lifts straight off it.
+     Menu and rail jumps skip it; a click hurries it along. */
+  function quoteBeat() {
+    const box = $('#beat'), text = $('#beat-text'), by = $('#beat-by'), music = $('#music');
+    if (!box || !music || !lenis) return;
+    const WORDS = '“Floating between time and space, uncovering melodies and sequencing rhythms”'.split(' ');
+    const HOT = /melodies|rhythms/;
+    const els = WORDS.map((w, i) => {
+      const el = document.createElement('span'); el.className = 'w' + (HOT.test(w) ? ' hot' : ''); el.textContent = w;
+      if (i) text.append(' '); text.append(el); return el;
+    });
+    const rnd = (a, b) => a + Math.random() * (b - a), TAU = Math.PI * 2;
+    let played = false, busy = false;
+
+    function play() {
+      played = busy = true;
+      lenis.stop(); document.documentElement.classList.add('is-beat-locked'); box.classList.add('is-on');
+      gsap.set([text, by, ...els], { clearProps: 'all' });
+      gsap.to(['#cursor', '#peek'], { scale: 0, duration: .2, overwrite: true }); // the "View" disc would otherwise sit on top of the quote
+      const vw = innerWidth, vh = innerHeight, cx = vw / 2, cy = vh / 2;
+      /* each word: where it ends up (relative to the screen centre), where it starts, and how it drifts */
+      const W = els.map((el) => {
+        const r = el.getBoundingClientRect(), fx = r.left + r.width / 2 - cx, fy = r.top + r.height / 2 - cy;
+        return { el, fx, fy, sx: rnd(-.42, .42) * vw, sy: rnd(-.38, .38) * vh, vx: rnd(-70, 70), vy: rnd(-50, 50), ph: rnd(0, TAU), rot: rnd(-24, 24), x: 0, y: 0 };
+      });
+      const FLOAT = 1.5, SWIRL = 1.35;
+      const place = (w, X, Y, rot, sc) => gsap.set(w.el, { x: X - w.fx, y: Y - w.fy, rotation: rot, scale: sc }); // X,Y are centre-relative
+      const drift = { t: 0 }, turn = { p: 0 };
+      W.forEach((w) => { w.x = w.sx; w.y = w.sy; place(w, w.x, w.y, w.rot, .8); });
+      gsap.set(els, { opacity: 0 }); gsap.set(by, { opacity: 0 });
+
+      const land = () => lenis.scrollTo(music, { immediate: true, force: true });
+      const tl = gsap.timeline({ onComplete() {
+        box.classList.remove('is-on'); document.documentElement.classList.remove('is-beat-locked');
+        gsap.set(box, { autoAlpha: 0 }); lenis.start(); busy = false; box.onclick = null;
+      } });
+      box.onclick = () => tl.timeScale(4);
+      window.__len = Object.assign(window.__len || {}, { beat: tl }); // capture tools pause and step this
+      tl.to(box, { autoAlpha: 1, duration: .25, ease: 'power1.out' }, 0)
+        .to(els, { opacity: 1, duration: .6, ease: 'power2.out', stagger: { each: .04, from: 'random' } }, .1)
+        /* float: a slow drift with a wobble on top */
+        .to(drift, { t: 1, duration: FLOAT, ease: 'none', onUpdate() {
+          W.forEach((w) => {
+            w.x = w.sx + w.vx * FLOAT * drift.t + Math.sin(drift.t * TAU + w.ph) * 14;
+            w.y = w.sy + w.vy * FLOAT * drift.t + Math.cos(drift.t * TAU * .8 + w.ph) * 12;
+            place(w, w.x, w.y, w.rot + Math.sin(drift.t * TAU + w.ph) * 6, .8);
+          });
+        } }, 0)
+        /* swirl: polar around the centre; every word turns clockwise by at least a full turn while its radius closes */
+        .add(() => W.forEach((w) => {
+          w.r0 = Math.hypot(w.x, w.y); w.a0 = Math.atan2(w.y, w.x);
+          w.r1 = Math.hypot(w.fx, w.fy); const a1 = Math.atan2(w.fy, w.fx);
+          w.da = ((a1 - w.a0) % TAU + TAU) % TAU + TAU; w.rotNow = w.rot;
+        }), FLOAT)
+        .to(turn, { p: 1, duration: SWIRL, ease: 'power3.inOut', onUpdate() {
+          const p = turn.p;
+          W.forEach((w) => {
+            const a = w.a0 + w.da * p, r = (w.r0 + (w.r1 - w.r0) * p) * (1 - .28 * Math.sin(Math.PI * p));
+            /* each word also turns with its own orbit (further travelled = more spin), so mid-swirl they fan out like a spiral arm */
+            place(w, Math.cos(a) * r, Math.sin(a) * r, w.rotNow * (1 - p) + w.da * (180 / Math.PI) * .2 * Math.sin(Math.PI * p), .8 + .2 * p);
+          });
+        } }, FLOAT)
+        .to(by, { opacity: 1, duration: .5, ease: 'power2.out' }, FLOAT + SWIRL - .15)
+        /* hold to read, then lift off the music room */
+        .add(land, FLOAT + SWIRL + .9)
+        .to([text, by], { yPercent: -14, autoAlpha: 0, duration: .4, ease: 'power3.in' }, FLOAT + SWIRL + 1.25)
+        .to(box, { autoAlpha: 0, duration: .3 }, '>-0.15');
+    }
+    const born = performance.now();
+    ScrollTrigger.create({ trigger: music, start: 'top 85%',
+      onEnter(st) {
+        /* only a real scroll down out of About me: not a reload further down the page, not a menu jump */
+        if (played || busy || jumping || $('#loader') || performance.now() - born < 1200 || lenis.scroll > st.start + innerHeight * .7) return;
+        play();
+      } });
   }
 
   /* ---------- intro ---------- */
