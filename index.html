@@ -299,6 +299,14 @@
   .beat__text{max-width:min(88vw, 1500px);text-align:center;font-size:clamp(1.7rem, 5vw, 5.2rem);line-height:1.04;}
   .beat__text .w{display:inline-block;will-change:transform,opacity;}
   .beat__text .hot{color:var(--leaf);}
+  /* the multicoloured glitch flash, ported from the Online Store's chapter headings (same technique, same colours):
+     two ghost copies of the word, cyan and red, screen-blended, each revealed through a random horizontal band that
+     drifts while the flash decays. Used on "shapes" in the belief line below (belief-beat) */
+  .beat__text .gl{position:relative;}
+  .beat__text .gl::before,.beat__text .gl::after{content:attr(data-text);position:absolute;left:0;top:0;width:100%;pointer-events:none;opacity:0;}
+  .beat__text .gl::before{color:#8DE8DA;mix-blend-mode:screen;clip-path:inset(var(--t1,0) 0 var(--b1,100%) 0);transform:translateX(var(--x1,0));}
+  .beat__text .gl::after{color:#FF6E6E;mix-blend-mode:screen;clip-path:inset(var(--t2,0) 0 var(--b2,100%) 0);transform:translateX(var(--x2,0));}
+  .beat__text .gl.is-glitch::before,.beat__text .gl.is-glitch::after{opacity:1;}
   .beat__by{display:block;text-align:center;margin-top:clamp(22px, 3.4vh, 40px);font-size:13px;opacity:0;}
   @media (hover:none){ html.is-beat-locked{overflow:hidden;} }
   html.is-beat-locked .cursor,html.is-beat-locked .peek{visibility:hidden;}
@@ -1075,20 +1083,45 @@
       } });
   }
 
+  /* ---------- glitch: multicoloured flash, ported verbatim from the Online Store's chapter headings (owner asked for
+     "the same effect ... on the each word 'shapes'" as the store's scroll-in flash on Classic/Originals/etc) ----------
+     Two ghost copies of el's text (cyan, red) reveal through a random horizontal band that drifts while the flash
+     decays over dur ms. el needs class "gl" and a data-text attribute equal to its own text. */
+  function glitch(el, dur = 700) {
+    if (RM || !el || el.classList.contains('is-glitch')) return;
+    el.classList.add('is-glitch');
+    const t0 = performance.now();
+    (function step() {
+      const p = (performance.now() - t0) / dur;
+      if (p >= 1) { el.classList.remove('is-glitch'); ['--t1', '--b1', '--x1', '--t2', '--b2', '--x2'].forEach((k) => el.style.removeProperty(k)); return; }
+      const amp = (1 - p) ** 2, t1 = Math.random() * 80, t2 = Math.random() * 80;
+      el.style.setProperty('--t1', t1 + '%'); el.style.setProperty('--b1', (100 - t1 - 6 - Math.random() * 18) + '%');
+      el.style.setProperty('--t2', t2 + '%'); el.style.setProperty('--b2', (100 - t2 - 6 - Math.random() * 18) + '%');
+      el.style.setProperty('--x1', ((Math.random() - .5) * 28 * amp) + 'px');
+      el.style.setProperty('--x2', ((Math.random() - .5) * 28 * amp) + 'px');
+      setTimeout(step, 40);
+    })();
+  }
+
   /* ---------- the belief line: a second timed moment, between Speaker and Podcast ----------
      Same cover and scroll hold as the Colyn quote, different entrance: the red key words spin in from random
-     directions and land in their places first, then the words between them fade in to fill the gaps. */
+     directions and land in their places first, then the words between them fade in to fill the gaps. "shapes" stays
+     one of the plain fill words (owner: not red, not spun) but flashes with the store's glitch once the line has
+     filled in, once per occurrence. */
   function beliefBeat() {
     const box = $('#belief-beat'), text = $('#belief-beat-text'), podcast = $('#podcast');
     if (!box || !podcast || !lenis) return;
-    const WORDS = 'Attention shapes beliefs. Beliefs shape imagination. Imagination shapes action. Action creates your reality.'.split(' ');
-    const HOT = /attention|beliefs|imagination|action|reality/i;
+    const WORDS = 'Attention shapes beliefs. Belief shapes imagination. Imagination shapes action. Action shapes reality.'.split(' ');
+    const HOT = /attention|belief|imagination|action|reality/i; // was "beliefs": the plural literal no longer matches singular "Belief"
     const els = WORDS.map((w, i) => {
-      const el = document.createElement('span'); el.className = 'w' + (HOT.test(w) ? ' hot' : ''); el.textContent = w;
+      const isShapes = /^shapes?$/i.test(w);
+      const el = document.createElement('span'); el.className = 'w' + (HOT.test(w) ? ' hot' : '') + (isShapes ? ' gl' : ''); el.textContent = w;
+      if (isShapes) el.dataset.text = w; // the glitch's ghost copies read this, not textContent
       if (i) text.append(WORDS[i - 1].endsWith('.') ? document.createElement('br') : ' '); // one sentence to a line, at any width
       text.append(el); return el;
     });
     const hot =els.filter((el) => el.classList.contains('hot')), rest = els.filter((el) => !el.classList.contains('hot'));
+    const shapesEls = els.filter((el) => el.classList.contains('gl'));
     const rnd = (a, b) => a + Math.random() * (b - a), TAU = Math.PI * 2;
     let played = false, busy = false;
 
@@ -1115,7 +1148,10 @@
         .to(order, { opacity: 1, duration: .3, ease: 'power1.out', stagger: EACH }, START)
         .to(order, { x: 0, y: 0, rotation: 0, scale: 1, duration: IN, ease: 'power3.out', stagger: EACH }, START)
         /* the key words are in place: the rest fades into the gaps, in reading order */
-        .to(rest, { opacity: 1, y: 0, duration: FILL, ease: 'power2.out', stagger: GAP }, LANDED - .2)
+        .to(rest, { opacity: 1, y: 0, duration: FILL, ease: 'power2.out', stagger: GAP }, LANDED - .2);
+      /* the line has filled in: each "shapes" flashes with the store's glitch, one after another */
+      shapesEls.forEach((el, i) => tl.call(() => glitch(el, 750), null, FILLED + i * .15));
+      tl
         /* hold to read, then lift off the podcast room */
         .add(land, FILLED + HOLD - .35)
         .to(text, { yPercent: -14, autoAlpha: 0, duration: .4, ease: 'power3.in' }, FILLED + HOLD)
