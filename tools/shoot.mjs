@@ -31,7 +31,7 @@ await page.goto(mode === 'intro' ? URL + '?hold=1' : URL, { waitUntil: 'networki
 if (mode === 'intro') {
   await page.waitForFunction(() => !!(window.__len && window.__len.intro), { timeout: 15000 }); // a boolean: returning the timeline itself hangs Puppeteer
   await page.evaluate(() => { window.__len.intro.pause(); });
-  for (const t of (process.env.TIMES || '0.6,1.2,1.9,2.6,3.0,3.3,3.5,3.9,4.4,5.0').split(',')) {
+  for (const t of (process.env.TIMES || '0.6,1.2,1.5,2.0,2.4,2.9,3.4,4.0,4.5,4.8,5.5,5.9,6.6,7.6').split(',')) {
     await page.evaluate((t) => { window.__len.intro.time(+t); }, t);
     await wait(900); // tweens started by callbacks inside the timeline run in real time
     await page.screenshot({ path: name('t' + t), type: 'jpeg', quality: 72 });

@@ -1028,7 +1028,7 @@
     const holes = $('#len-holes'), names = $$('#loader-names span'), count = $('#loader-count'), reelImgs = $$('#reel img'), final = $('#reel [data-final]');
     const vw = innerWidth, vh = innerHeight;
     const G = lenGeo(Math.max(17, Math.min(36, vw * .024))), ox = (vw - G.total) / 2, oy = (vh - G.H) / 2;
-    holes.innerHTML = lenMarkup(G, ox, oy, true);
+    holes.innerHTML = lenMarkup(G, ox, oy); // the E starts the right way round and spins itself into the mirrored mark
     const letters = $$('[data-l]', holes);
     names.forEach((n, i) => { n.style.left = (ox + i * (G.W + G.g) + G.W / 2) + 'px'; n.style.top = (oy + G.H + 18) + 'px'; });
     gsap.set(['#chrome', '.hero__role', '.hero__base'], { autoAlpha: 0 });
@@ -1046,13 +1046,22 @@
     loader.addEventListener('click', () => tl.timeScale(5), { once: true });
     /* shapes inside a <mask> have no layout box, so GSAP's svgOrigin maths drifts: the transforms are written by hand */
     const about = (el, x, y, sx, sy) => el.setAttribute('transform', `translate(${x} ${y}) scale(${sx} ${sy}) translate(${-x} ${-y})`);
-    letters.forEach((g, i) => { const o = { s: 0 }; about(g, 0, zy, 1, 0); tl.to(o, { s: 1, duration: .9, ease: 'expo.inOut', onUpdate: () => about(g, 0, zy, 1, o.s) }, .15 + i * .1); });
+    /* the E turns about its own upright axis (a flat letter seen side-on: width = cos of the angle), winds down and
+       rests on a half turn, which is the mirrored E; then a held beat before the camera goes through its stem */
+    const ex = ox + G.W + G.g + G.W / 2, eT = { sy: 0, a: 0 }, TURNS = 3.5, SPIN = 1.15, SPIN_D = 2.9, REST = SPIN + SPIN_D, HOLD = .75;
+    const drawE = () => about(letters[1], ex, zy, Math.cos(eT.a), eT.sy);
+    const windDown = (t) => 1 - Math.pow(1 - Math.pow(t, 1.5), 4); // eases off the mark, then a long slowing tail
+    letters.forEach((g, i) => {
+      const o = i === 1 ? eT : { sy: 0 }, draw = i === 1 ? drawE : () => about(g, 0, zy, 1, o.sy);
+      draw(); tl.to(o, { sy: 1, duration: .9, ease: 'expo.inOut', onUpdate: draw }, .15 + i * .1);
+    });
+    tl.to(eT, { a: Math.PI * 2 * TURNS, duration: SPIN_D, ease: windDown, onUpdate: drawE }, SPIN);
     tl.to(names, { opacity: 1, duration: .6, stagger: .1 }, .8)
       .to(['.loader__site', count], { opacity: 1, duration: .6 }, .8)
-      .to(state, { n: 100, duration: 1.9, ease: 'power1.inOut', onUpdate: () => { count.textContent = String(Math.round(state.n)).padStart(3, '0'); } }, .5);
-    reelImgs.forEach((_, k) => { if (k) tl.add(() => show(k), .75 + k * .3); });
-    tl.to([names, '.loader__site', count], { opacity: 0, duration: .3 }, 2.35)
-      .to(zoom, { s: S, duration: 1.05, ease: 'expo.in', onUpdate: () => about(holes, zx, zy, zoom.s, zoom.s) }, 2.4)
+      .to(state, { n: 100, duration: REST - .5, ease: 'power1.inOut', onUpdate: () => { count.textContent = String(Math.round(state.n)).padStart(3, '0'); } }, .5);
+    reelImgs.forEach((_, k) => { if (k) tl.add(() => show(k), .75 + k * (REST - 1) / (reelImgs.length - 1)); });
+    tl.to([names, '.loader__site', count], { opacity: 0, duration: .3 }, REST + HOLD - .05)
+      .to(zoom, { s: S, duration: 1.05, ease: 'expo.in', onUpdate: () => about(holes, zx, zy, zoom.s, zoom.s) }, REST + HOLD)
       .set('#loader-svg', { display: 'none' })
       .add(() => {
         /* the full-screen picture settles into the centre card: same picture, same crop centre */
