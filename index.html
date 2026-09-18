@@ -827,7 +827,7 @@
         const r = el.getBoundingClientRect(), fx = r.left + r.width / 2 - cx, fy = r.top + r.height / 2 - cy;
         return { el, fx, fy, sx: rnd(-.42, .42) * vw, sy: rnd(-.38, .38) * vh, vx: rnd(-70, 70), vy: rnd(-50, 50), ph: rnd(0, TAU), rot: rnd(-24, 24), x: 0, y: 0 };
       });
-      const FLOAT = 1.5, SWIRL = 1.35, HOLD = 2.2; // HOLD: how long the settled quote stays up to be read (was 1.25)
+      const FLOAT = 1.5, SWIRL = 1.35, HOLD = 2.9; // HOLD: how long the settled quote stays up to be read (1.25 -> 2.2 -> 2.9, the owner asked for longer twice)
       const place = (w, X, Y, rot, sc) => gsap.set(w.el, { x: X - w.fx, y: Y - w.fy, rotation: rot, scale: sc }); // X,Y are centre-relative
       const drift = { t: 0 }, turn = { p: 0 };
       W.forEach((w) => { w.x = w.sx; w.y = w.sy; place(w, w.x, w.y, w.rot, .8); });
