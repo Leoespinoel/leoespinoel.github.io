@@ -186,10 +186,13 @@
   @keyframes drop{0%{transform:scaleY(0);}50%{transform:scaleY(1);transform-origin:top;}51%{transform-origin:bottom;}100%{transform:scaleY(0);transform-origin:bottom;}}
 
   /* ---------- statement ---------- */
-  .statement{padding:22vh var(--gutter) 10vh;}
-  .statement p{margin:0;max-width:16ch;font-size:clamp(2.1rem, 5.3vw, 5.4rem);}
+  .statement{position:relative;padding:22vh var(--gutter) 10vh;}
+  .statement p{position:relative;z-index:0;margin:0;max-width:16ch;font-size:clamp(2.1rem, 5.3vw, 5.4rem);}
   .statement p em{font-style:normal;color:var(--leaf);}
   .statement .label{display:block;margin-bottom:34px;}
+  /* the "ART" spilt-paint painting sits over the statement, then gets sucked up into the words as they rise into place */
+  .statement__art{position:absolute;left:50%;top:46%;width:min(64%, 460px);transform:translate(-50%,-50%);pointer-events:none;z-index:1;overflow:visible;}
+  .statement__art .art-word{font-family:var(--display);font-weight:900;font-size:175px;letter-spacing:-6px;}
 
   /* ---------- rooms: text stays, pictures float past ---------- */
   .room{position:relative;min-height:185vh;padding:16vh var(--gutter) 20vh;}
@@ -364,6 +367,7 @@
     #loader{display:none;}
     .hero__scroll i,.eq i{animation:none;}
     .float__clip img,.float figcaption,.pill::before{transition:none;}
+    .statement__art{display:none;}
   }
 </style>
 </head>
@@ -471,7 +475,27 @@
   <!-- ============ STATEMENT ============ -->
   <section class="statement" aria-label="Statement">
     <span class="label"><b>·</b> Draft line, yours to rewrite</span>
-    <p class="display" data-split><span class="red">Creating</span> <em>art</em> that moves people. Records, brands, pictures and rooms.</p>
+    <svg class="statement__art" viewBox="0 0 420 220" aria-hidden="true">
+      <defs>
+        <filter id="art-splat" x="-40%" y="-40%" width="180%" height="180%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.035 0.05" numOctaves="2" seed="7" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+        <symbol id="splat-1" viewBox="0 0 40 40"><path d="M20 2C27 1 35 6 37 15C39 24 35 33 26 37C17 41 6 37 3 28C0 19 3 9 12 5C15 3 17 2 20 2Z"/><circle cx="33" cy="9" r="2.6"/></symbol>
+        <symbol id="splat-2" viewBox="0 0 40 40"><path d="M18 3C25 0 34 4 37 12C40 21 36 31 28 36C19 41 8 38 4 29C0 20 2 10 10 5C12 3 15 3 18 3Z"/></symbol>
+        <symbol id="splat-3" viewBox="0 0 40 40"><path d="M22 4C29 2 36 9 36 17C36 26 30 34 21 36C12 38 3 32 2 22C1 13 8 5 17 4C19 3 20 4 22 4Z"/><circle cx="6" cy="30" r="2.2"/></symbol>
+        <symbol id="splat-4" viewBox="0 0 40 40"><path d="M17 2C25 1 33 7 35 16C37 25 32 34 23 37C14 40 4 35 2 25C0 16 5 7 14 4C15 3 16 2 17 2Z"/></symbol>
+      </defs>
+      <use href="#splat-2" x="18" y="140" width="46" height="46" fill="var(--white)" opacity=".9" transform="rotate(-14 41 163)"/>
+      <use href="#splat-1" x="340" y="16" width="52" height="52" fill="var(--leaf)" transform="rotate(18 366 42)"/>
+      <use href="#splat-3" x="2" y="28" width="34" height="34" fill="var(--pine)" transform="rotate(8 19 45)"/>
+      <text x="50%" y="66%" text-anchor="middle" class="art-word" filter="url(#art-splat)"><tspan fill="var(--pine)">A</tspan><tspan fill="var(--white)">R</tspan><tspan fill="var(--leaf)">T</tspan></text>
+      <use href="#splat-4" x="358" y="150" width="40" height="40" fill="var(--white)" opacity=".85" transform="rotate(-20 378 170)"/>
+      <use href="#splat-2" x="118" y="2" width="26" height="26" fill="var(--pine)" opacity=".8" transform="rotate(30 131 15)"/>
+      <use href="#splat-1" x="248" y="176" width="30" height="30" fill="var(--leaf)" opacity=".85" transform="rotate(-30 263 191)"/>
+      <use href="#splat-3" x="78" y="176" width="24" height="24" fill="var(--white)" opacity=".7" transform="rotate(12 90 188)"/>
+    </svg>
+    <p class="display" data-split>Creating <span class="red">art</span> that <span class="red">moves</span> <span class="red">people</span>. Records, brands, pictures and rooms.</p>
   </section>
 
   <!-- ============ 01 ABOUT ============ -->
@@ -976,6 +1000,8 @@
       const s = SplitText.create(el, { type: 'lines,words', mask: 'lines', linesClass: 'ln' });
       gsap.from(s.words, { yPercent: 115, duration: 1.2, ease: 'expo.out', stagger: .05, scrollTrigger: { trigger: el, start: 'top 90%', once: true } });
     });
+    /* the "ART" spilt-paint painting gets sucked upward at the same moment the statement's words rise into place beneath it */
+    gsap.to('.statement__art', { y: -130, scale: .4, autoAlpha: 0, rotate: -6, ease: 'power3.in', duration: .85, scrollTrigger: { trigger: '.statement p', start: 'top 90%', once: true } });
     $$('[data-fade]').forEach((el) => gsap.from(el, { autoAlpha: 0, y: 26, duration: 1.1, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 92%', once: true } }));
     /* pictures open from the bottom edge as they arrive */
     $$('.float__clip[data-reveal]').forEach((clip) => {
