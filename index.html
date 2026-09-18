@@ -644,12 +644,14 @@
 
   /* ---------- the L E N mark: three block initials, drawn from one unit (the stroke) ---------- */
   function lenGeo(u) { const W = 3.1 * u, H = 5.2 * u, g = .85 * u; return { u, W, H, g, total: 3 * W + 2 * g }; }
-  function lenMarkup(G, ox, oy) {
+  function lenMarkup(G, ox, oy, mirrorE = false) {
     const { u, W, H, g } = G, f = (n) => n.toFixed(2);
     const r = (x, y, w, h) => `<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}"/>`;
     const x = [ox, ox + W + g, ox + 2 * (W + g)];
+    const eStem = mirrorE ? r(x[1] + W - u, oy, u, H) : r(x[1], oy, u, H);
+    const eMid = mirrorE ? r(x[1] + W * .2, oy + (H - u) / 2, W * .8, u) : r(x[1], oy + (H - u) / 2, W * .8, u);
     return `<g data-l>${r(x[0], oy, u, H)}${r(x[0], oy + H - u, W, u)}</g>`
-      + `<g data-l>${r(x[1], oy, u, H)}${r(x[1], oy, W, u)}${r(x[1], oy + (H - u) / 2, W * .8, u)}${r(x[1], oy + H - u, W, u)}</g>`
+      + `<g data-l>${eStem}${r(x[1], oy, W, u)}${eMid}${r(x[1], oy + H - u, W, u)}</g>`
       + `<g data-l>${r(x[2], oy, u, H)}${r(x[2] + W - u, oy, u, H)}<polygon points="${f(x[2])},${f(oy)} ${f(x[2] + u * 1.3)},${f(oy)} ${f(x[2] + W)},${f(oy + H)} ${f(x[2] + W - u * 1.3)},${f(oy + H)}"/></g>`;
   }
   { const G = lenGeo(10), svg = $('#mark-svg'); svg.setAttribute('viewBox', `0 0 ${G.total} ${G.H}`); svg.innerHTML = lenMarkup(G, 0, 0); }
@@ -741,15 +743,27 @@
     const cur = $('#cursor'), peek = $('#peek'), peekImg = $('img', peek);
     const cx = gsap.quickTo(cur, 'x', { duration: .35, ease: 'power3' }), cy = gsap.quickTo(cur, 'y', { duration: .35, ease: 'power3' });
     const px = gsap.quickTo(peek, 'x', { duration: .6, ease: 'power3' }), py = gsap.quickTo(peek, 'y', { duration: .6, ease: 'power3' });
-    addEventListener('pointermove', (e) => { cx(e.clientX); cy(e.clientY); px(e.clientX + 28); py(e.clientY - 250); }, { passive: true });
-    $$('.float, .work').forEach((el) => {
-      el.addEventListener('pointerenter', () => gsap.to(cur, { scale: 1, duration: .5, ease: 'expo.out' }));
-      el.addEventListener('pointerleave', () => gsap.to(cur, { scale: 0, duration: .35, ease: 'power2.out' }));
-    });
-    $$('[data-peek]').forEach((a) => {
-      a.addEventListener('pointerenter', () => { peekImg.src = a.dataset.peek; gsap.to(peek, { opacity: 1, scale: 1, duration: .6, ease: 'expo.out' }); });
-      a.addEventListener('pointerleave', () => gsap.to(peek, { opacity: 0, scale: .6, duration: .4, ease: 'power2.out' }));
-    });
+    /* One source of truth: what is under the pointer right now. Separate enter / leave tweens used to race (the longer
+       "show" tween outlived the shorter "hide" one after a quick pass, so the disc or the row picture stayed stuck to
+       the mouse), and neither ever hid when the page scrolled away under a still pointer. */
+    let mx = -1, my = -1, viewOn = false, peekSrc = null;
+    const setView = (on) => { if (on === viewOn) return; viewOn = on; gsap.to(cur, { scale: on ? 1 : 0, duration: on ? .5 : .3, ease: on ? 'expo.out' : 'power2.out', overwrite: 'auto' }); };
+    const setPeek = (src) => {
+      if (src === peekSrc) return; peekSrc = src;
+      if (src) { if (peekImg.getAttribute('src') !== src) peekImg.src = src; gsap.to(peek, { opacity: 1, scale: 1, duration: .6, ease: 'expo.out', overwrite: 'auto' }); }
+      else gsap.to(peek, { opacity: 0, scale: .6, duration: .3, ease: 'power2.out', overwrite: 'auto' });
+    };
+    const sync = () => {
+      const el = mx < 0 ? null : document.elementFromPoint(mx, my);
+      const row = el && el.closest('[data-peek]'), pic = el && el.closest('.float, .work');
+      setPeek(row ? row.dataset.peek : null); setView(!!pic && !row);
+    };
+    addEventListener('pointermove', (e) => { mx = e.clientX; my = e.clientY; cx(mx); cy(my); px(mx + 28); py(my - 250); sync(); }, { passive: true });
+    document.documentElement.addEventListener('pointerleave', () => { mx = my = -1; sync(); });
+    addEventListener('blur', () => { mx = my = -1; sync(); });
+    let queued = false;
+    const onScroll = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; sync(); }); };
+    if (lenis) lenis.on('scroll', onScroll); else addEventListener('scroll', onScroll, { passive: true });
   }
 
   /* ---------- hero: the floating field ---------- */
@@ -921,7 +935,7 @@
     const holes = $('#len-holes'), names = $$('#loader-names span'), count = $('#loader-count'), reelImgs = $$('#reel img'), final = $('#reel [data-final]');
     const vw = innerWidth, vh = innerHeight;
     const G = lenGeo(Math.max(17, Math.min(36, vw * .024))), ox = (vw - G.total) / 2, oy = (vh - G.H) / 2;
-    holes.innerHTML = lenMarkup(G, ox, oy);
+    holes.innerHTML = lenMarkup(G, ox, oy, true);
     const letters = $$('[data-l]', holes);
     names.forEach((n, i) => { n.style.left = (ox + i * (G.W + G.g) + G.W / 2) + 'px'; n.style.top = (oy + G.H + 18) + 'px'; });
     gsap.set(['#chrome', '.hero__role', '.hero__base'], { autoAlpha: 0 });
@@ -929,8 +943,8 @@
     gsap.set('#marquee', { yPercent: 115 });
     gsap.set('.hero__tab', { xPercent: -100 });
 
-    /* the camera goes through the stem of the E */
-    const zx = ox + G.W + G.g + G.u / 2, zy = vh / 2;
+    /* the camera goes through the stem of the E (mirrored: stem sits on the right of the block) */
+    const zx = ox + 2 * G.W + G.g - G.u / 2, zy = vh / 2;
     const S = Math.hypot(Math.max(zx, vw - zx), Math.max(zy, vh - zy)) / (G.u / 2) * 1.15;
     const state = { n: 0 }, zoom = { s: 1 }, show = (k) => reelImgs.forEach((im, i) => im.classList.toggle('is-on', i === k));
     show(0);
