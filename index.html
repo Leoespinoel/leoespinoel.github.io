@@ -350,8 +350,9 @@
     <li><a href="#music"><small>02</small>Music Producer</a></li>
     <li><a href="#design"><small>03</small>Designer</a></li>
     <li><a href="#photo"><small>04</small>Photographer</a></li>
-    <li><a href="#speaker"><small>05</small>Speaker</a></li>
-    <li><a href="#fon"><small>06</small>Force of Nature</a></li>
+    <li><a href="#mover"><small>05</small>Mover</a></li>
+    <li><a href="#speaker"><small>06</small>Speaker</a></li>
+    <li><a href="#fon"><small>07</small>Force of Nature</a></li>
   </ol>
   <div class="menu__foot label"><a href="#newsletter">Newsletter</a><span>leoespinoel.com</span></div>
 </div>
@@ -361,8 +362,9 @@
   <a href="#music" data-rail="music"><span>Music Producer</span>02</a>
   <a href="#design" data-rail="design"><span>Designer</span>03</a>
   <a href="#photo" data-rail="photo"><span>Photographer</span>04</a>
-  <a href="#speaker" data-rail="speaker"><span>Speaker</span>05</a>
-  <a href="#fon" data-rail="fon"><span>Force of Nature</span>06</a>
+  <a href="#mover" data-rail="mover"><span>Mover</span>05</a>
+  <a href="#speaker" data-rail="speaker"><span>Speaker</span>06</a>
+  <a href="#fon" data-rail="fon"><span>Force of Nature</span>07</a>
 </nav>
 
 <main id="top">
@@ -483,10 +485,33 @@
     </div>
   </section>
 
-  <!-- ============ 05 SPEAKER ============ -->
+  <!-- ============ 05 MOVER ============ -->
+  <section class="room" id="mover" data-room="mover">
+    <div class="room__text">
+      <span class="label"><b>05</b> Mover</span>
+      <h2 class="display" data-split>Move to think</h2>
+      <p class="lead ph" data-fade>[Two or three sentences: how calisthenics and running found you, and why movement matters for the mind as much as the body.]</p>
+      <p class="ph" data-fade>[A line on the practice itself: how often, what it looks like, what changes when you skip it.]</p>
+      <ol class="rows" data-fade>
+        <li><a href="#" data-soon data-peek="assets/placeholder/m2.jpg"><small>01</small><strong>Calisthenics, day one</strong><small>[Year]</small></a></li>
+        <li><a href="#" data-soon data-peek="assets/placeholder/m1.jpg"><small>02</small><strong>First long run</strong><small>[Distance, year]</small></a></li>
+        <li><a href="#" data-soon data-peek="assets/placeholder/m3.jpg"><small>03</small><strong>The rest-day rule</strong><small>[Note]</small></a></li>
+        <li><a href="#" data-soon data-peek="assets/placeholder/m4.jpg"><small>04</small><strong>What it clears</strong><small>Mind, mostly</small></a></li>
+      </ol>
+      <a class="pill" href="#" data-soon data-fade>Training log <i>↗</i></a>
+    </div>
+    <div class="field">
+      <figure class="float" style="--x:58%;--y:8%;--w:23%;--ar:4/5;--r:var(--R);--mw:76%" data-speed="1.1"><div class="float__clip" data-reveal><img src="assets/placeholder/m2.jpg" alt="Placeholder" loading="lazy"></div><figcaption class="label"><span>Practice</span><span class="ph">Placeholder</span></figcaption></figure>
+      <figure class="float" style="--x:81%;--y:34%;--w:15%;--ar:1/1;--r:40px;--mw:50%;--ml:50%" data-speed="2.1"><div class="float__clip" data-reveal><img src="assets/placeholder/m3.jpg" alt="Placeholder" loading="lazy"></div><figcaption class="label"><span>The route</span><span class="ph">Placeholder</span></figcaption></figure>
+      <figure class="float" style="--x:52%;--y:53%;--w:19%;--ar:3/2;--r:40px;--mw:66%" data-speed="1.5"><div class="float__clip" data-reveal><img src="assets/placeholder/m1.jpg" alt="Placeholder" loading="lazy"></div><figcaption class="label"><span>Running</span><span class="ph">Placeholder</span></figcaption></figure>
+      <figure class="float" style="--x:68%;--y:71%;--w:23%;--ar:4/5;--r:var(--R);--mw:70%;--ml:30%" data-speed=".8"><div class="float__clip" data-reveal><img src="assets/placeholder/m4.jpg" alt="Placeholder" loading="lazy"></div><figcaption class="label"><span>Quiet after</span><span class="ph">Placeholder</span></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- ============ 06 SPEAKER ============ -->
   <section class="speaker" id="speaker" data-room="speaker">
     <div>
-      <span class="label"><b>05</b> Speaker</span>
+      <span class="label"><b>06</b> Speaker</span>
       <blockquote class="display" id="quote">“I was handed a lot. The only honest thing to do with it is pay it forward.”</blockquote>
     </div>
     <div class="speaker__side">
@@ -505,7 +530,7 @@
   <section class="fon" id="fon" data-room="fon">
     <div class="room__text">
       <img class="fon__heart" src="assets/fon/heart.png" alt="" data-fade>
-      <span class="label"><b>06</b> Force of Nature</span>
+      <span class="label"><b>07</b> Force of Nature</span>
       <h2 class="display" data-split>Where mission and style collide</h2>
       <p class="lead" data-fade>The clothing brand I founded. Ten percent of every sale, not of profit, goes to reef, forest and coastline conservation.</p>
       <p data-fade>It is where everything else on this page meets: the design, the pictures, the sound and the reason for all of it.</p>
@@ -653,13 +678,20 @@
     if (lenis) { lenis.start(); lenis.scrollTo(target, { duration: 1.6, easing: (t) => 1 - Math.pow(1 - t, 4) }); } else target.scrollIntoView();
   }));
 
-  /* ---------- rail ---------- */
-  const railLinks = $$('[data-rail]');
-  $$('[data-room]').forEach((sec) => ScrollTrigger.create({
-    trigger: sec, start: 'top 55%', end: 'bottom 55%',
-    onToggle: (st) => { if (st.isActive) railLinks.forEach((a) => a.dataset.rail === sec.dataset.room ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')); sec.classList.toggle('is-live', st.isActive); },
-  }));
-  ScrollTrigger.create({ trigger: '#about', start: 'top 70%', endTrigger: 'footer', end: 'top 60%', onToggle: (st) => gsap.to('#rail', { opacity: st.isActive ? 1 : 0, duration: .5 }) });
+  /* ---------- rail ----------
+     One section is "current": whichever room's box spans the 55%-of-viewport line. A separate onToggle per
+     section (the old approach) can leave two sections simultaneously "active" at a shared boundary, and once that
+     happens the last one created always wins from then on — in practice the rail got stuck on the final section
+     (Force of Nature) the moment you scrolled anywhere near it. Picking the one section that actually spans the
+     line, fresh on every scroll tick, can't get stuck that way. */
+  const railLinks = $$('[data-rail]'), roomSections = $$('[data-room]');
+  function syncRail() {
+    const line = innerHeight * .55;
+    const current = roomSections.find((sec) => { const r = sec.getBoundingClientRect(); return r.top <= line && r.bottom >= line; });
+    railLinks.forEach((a) => a.dataset.rail === current?.dataset.room ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current'));
+    roomSections.forEach((s) => s.classList.toggle('is-live', s === current));
+  }
+  ScrollTrigger.create({ trigger: '#about', start: 'top 70%', endTrigger: 'footer', end: 'top 60%', onUpdate: syncRail, onToggle: (st) => gsap.to('#rail', { opacity: st.isActive ? 1 : 0, duration: .5 }) });
 
   /* ---------- cursor ring + track peek ---------- */
   if (FINE && !RM) {
@@ -811,6 +843,10 @@
     fitAll();
     heroMotion();
     scrollMotion();
+    // the rail's triggers (and every other scroll position) are computed the instant the script runs, before the
+    // real fonts are in — Archivo's metrics differ from the fallback, so every section's pixel position is off
+    // until this refresh runs against the final, fonts-loaded layout
+    ScrollTrigger.refresh();
     if (RM) return;
     intro();
   });
