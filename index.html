@@ -134,6 +134,12 @@
 
   /* ---------- hero ---------- */
   .hero{position:relative;height:100vh;height:100svh;min-height:600px;overflow:hidden;}
+  /* red aurora over the top of the hero, behind the pictures: two copies of one clip, crossfaded so the loop has no seam */
+  .hero__aurora{position:absolute;inset:0 0 auto 0;height:78%;z-index:0;pointer-events:none;mix-blend-mode:screen;opacity:1;-webkit-mask-image:linear-gradient(180deg, #000 0%, #000 38%, transparent 100%);mask-image:linear-gradient(180deg, #000 0%, #000 38%, transparent 100%);}
+  /* the movement is in the footage; the layer only sways slowly on top of it, and overhangs the hero so its edges never show */
+  .aurora__live{position:absolute;inset:0 -10% 0 -10%;transform-origin:50% 0;will-change:transform;}
+  .hero__aurora video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 0;opacity:0;}
+  .hero__aurora video:first-child{opacity:1;}
   .hero .field{position:absolute;inset:0;}
   .hero .float{left:calc(var(--x) * 1vw);top:calc(var(--y) * 1vh);width:calc(var(--w) * 1vw);}
   .hero .float__clip{opacity:var(--dim,.5);}
@@ -392,6 +398,7 @@
   <!-- ============ HERO ============ -->
   <section class="hero" aria-label="Léo Espitalier Noël">
     <h1 class="sr-only">Léo Espitalier Noël</h1>
+    <div class="hero__aurora" id="aurora" aria-hidden="true"><div class="aurora__live"><video src="assets/aurora/aurora.mp4" poster="assets/aurora/aurora.jpg" muted playsinline preload="auto" tabindex="-1"></video><video src="assets/aurora/aurora.mp4" muted playsinline preload="auto" tabindex="-1"></video></div></div>
     <div class="hero__role" aria-hidden="true"><i>↘</i><span class="label">Léo is a</span><div class="hero__role-turn"><span id="role">Music Producer</span></div></div>
     <div class="hero__tab" aria-hidden="true"><span>Made in<br>Mauritius</span><i>20°S</i></div>
     <div class="field" id="hero-field">
@@ -769,6 +776,32 @@
     if (lenis) lenis.on('scroll', onScroll); else addEventListener('scroll', onScroll, { passive: true });
   }
 
+  /* ---------- hero: the aurora ---------- */
+  /* one short clip, two players: near the end of one, the other starts from zero and they crossfade, so the loop never jumps */
+  function aurora() {
+    const box = $('#aurora'); if (!box || RM) return;
+    const vids = $$('video', box), FADE = 1.8;
+    let cur = 0, swapping = false, seen = true;
+    const play = (v) => v.play().catch(() => {});
+    const tick = () => {
+      const a = vids[cur], b = vids[1 - cur];
+      if (swapping || !a.duration || a.currentTime < a.duration - FADE - .6) return; // timeupdate is coarse (~4 a second): leave room so the fade ends before the clip does
+      swapping = true; b.currentTime = 0; play(b);
+      gsap.to(b, { opacity: 1, duration: FADE, ease: 'sine.inOut' });
+      gsap.to(a, { opacity: 0, duration: FADE, ease: 'sine.inOut', onComplete: () => { a.pause(); cur = 1 - cur; swapping = false; } });
+    };
+    vids.forEach((v) => v.addEventListener('timeupdate', tick));
+    play(vids[0]);
+    /* no decoding while the hero is off screen */
+    new IntersectionObserver(([e]) => { seen = e.isIntersecting; vids.forEach((v, i) => { if (!seen) v.pause(); else if (i === cur || swapping) play(v); }); }).observe(box);
+    gsap.to(box, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    /* a slow sway over the footage; the two periods differ so the 8s clip never lines up with it the same way twice */
+    const live = $('.aurora__live', box), wave = (vars, duration) => gsap.to(live, { ...vars, duration, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    gsap.set(live, { xPercent: -4, skewX: -5 });
+    const sweeps = [wave({ xPercent: 4 }, 17), wave({ skewX: 5 }, 11)];
+    new IntersectionObserver(([e]) => sweeps.forEach((t) => t.paused(!e.isIntersecting))).observe(box);
+  }
+
   /* ---------- hero: the floating field ---------- */
   const heroFloats = $$('#hero-field .float');
   function heroMotion() {
@@ -984,6 +1017,7 @@
     gsap.set('#focus', { autoAlpha: 1 });
     return gsap.timeline({ delay })
       .fromTo(others, { autoAlpha: 0, scale: .82 }, { autoAlpha: 1, scale: 1, duration: 1.6, ease: 'expo.out', stagger: { each: .06, from: 'random' } }, 0)
+      .fromTo('#aurora', { opacity: 0 }, { opacity: 1, duration: 2.6, ease: 'power2.out' }, .15)
       .fromTo('#marquee', { yPercent: 115 }, { yPercent: 0, duration: 1.5, ease: 'expo.out' }, .1)
       .fromTo('.hero__tab', { xPercent: -100 }, { xPercent: 0, duration: 1.3, ease: 'expo.out' }, .5)
       .fromTo(['#chrome', '.hero__role', '.hero__base'], { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.2, ease: 'power2.out', stagger: .08 }, .35);
@@ -999,6 +1033,7 @@
     names.forEach((n, i) => { n.style.left = (ox + i * (G.W + G.g) + G.W / 2) + 'px'; n.style.top = (oy + G.H + 18) + 'px'; });
     gsap.set(['#chrome', '.hero__role', '.hero__base'], { autoAlpha: 0 });
     gsap.set(heroFloats, { autoAlpha: 0 });
+    gsap.set('#aurora', { opacity: 0 });
     gsap.set('#marquee', { yPercent: 115 });
     gsap.set('.hero__tab', { xPercent: -100 });
 
@@ -1039,6 +1074,7 @@
 
   document.fonts.ready.then(() => {
     fitAll();
+    aurora();
     heroMotion();
     scrollMotion();
     // the rail's triggers (and every other scroll position) are computed the instant the script runs, before the
