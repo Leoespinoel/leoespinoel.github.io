@@ -155,7 +155,7 @@
 
   /* ---------- hero ---------- */
   .hero{position:relative;height:100vh;height:100svh;min-height:600px;overflow:hidden;}
-  /* red aurora over the top of the hero, behind the pictures: two copies of one clip, crossfaded so the loop has no seam */
+  /* red nebula over the top of the hero, behind the pictures: two copies of one clip, crossfaded so the loop has no seam */
   .hero__aurora{position:absolute;inset:0 0 auto 0;height:78%;z-index:0;pointer-events:none;mix-blend-mode:screen;opacity:1;-webkit-mask-image:linear-gradient(180deg, #000 0%, #000 38%, transparent 100%);mask-image:linear-gradient(180deg, #000 0%, #000 38%, transparent 100%);}
   /* the movement is in the footage; the layer only sways slowly on top of it, and overhangs the hero so its edges never show */
   .aurora__live{position:absolute;inset:0 -10% 0 -10%;transform-origin:50% 0;will-change:transform;}
@@ -467,7 +467,7 @@
   <!-- ============ HERO ============ -->
   <section class="hero" aria-label="Léo Espitalier Noël">
     <h1 class="sr-only">Léo Espitalier Noël</h1>
-    <div class="hero__aurora" id="aurora" aria-hidden="true"><div class="aurora__live"><video src="assets/aurora/aurora.mp4" poster="assets/aurora/aurora.jpg" muted playsinline preload="auto" tabindex="-1"></video><video src="assets/aurora/aurora.mp4" muted playsinline preload="auto" tabindex="-1"></video></div></div>
+    <div class="hero__aurora" id="aurora" aria-hidden="true"><div class="aurora__live"><video src="assets/nebula/nebula.mp4" poster="assets/nebula/nebula.jpg" muted playsinline preload="auto" tabindex="-1"></video><video src="assets/nebula/nebula.mp4" muted playsinline preload="auto" tabindex="-1"></video></div></div>
     <div class="hero__role" aria-hidden="true"><i>↘</i><span class="label">Léo is a</span><div class="hero__role-turn"><span id="role">Music Producer</span></div></div>
     <div class="hero__tab" aria-hidden="true"><span>Made in<br>Mauritius</span><i>20°S</i></div>
     <div class="field" id="hero-field">
@@ -913,7 +913,7 @@
     if (lenis) lenis.on('scroll', onScroll); else addEventListener('scroll', onScroll, { passive: true });
   }
 
-  /* ---------- hero: the aurora ---------- */
+  /* ---------- hero: the nebula ---------- */
   /* one short clip, two players: near the end of one, the other starts from zero and they crossfade, so the loop never jumps */
   function clipLoop(box) {
     const vids = $$('video', box), FADE = 1.8;
