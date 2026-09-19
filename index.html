@@ -313,6 +313,23 @@
   @media (hover:none){ html.is-beat-locked{overflow:hidden;} }
   html.is-beat-locked .cursor,html.is-beat-locked .peek{visibility:hidden;}
 
+  /* ---------- the collide beat (between Podcast and Force of Nature) ----------
+     Ported from the Online Store's "Where mission and style collide": a black cover comes up, MISSION and STYLE fly
+     in from either side and smash in the centre, their letters burst and settle into the full phrase while the other
+     words decode, then it lifts off Force of Nature. Every letter is its own fixed-width box so the decode never
+     shoves its neighbours around. Same lock (.beat classes) and cover colour as the quote and belief beats above. */
+  .collide{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--void);opacity:0;visibility:hidden;pointer-events:none;overflow:hidden;touch-action:none;cursor:pointer;}
+  .collide.is-on{pointer-events:auto;}
+  .collide__text{text-align:center;color:var(--white);line-height:.9;letter-spacing:-.005em;white-space:nowrap;will-change:transform,opacity;}
+  .collide__text .ln{display:block;}
+  .collide__text .w{display:inline-block;}
+  .collide__text .ch{display:inline-block;text-align:center;will-change:transform,opacity;}
+  .collide__text .hit{color:var(--leaf);}
+  .collide__flash{
+    position:absolute;left:50%;top:50%;width:110vmax;height:110vmax;margin:-55vmax 0 0 -55vmax;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle, rgba(243,237,225,.95) 0%, rgba(193,27,21,.6) 14%, rgba(193,27,21,0) 58%);opacity:0;transform:scale(0);
+  }
+
   .toast{position:fixed;left:50%;bottom:30px;z-index:70;transform:translate(-50%, 30px);padding:13px 22px;border-radius:999px;background:var(--white);color:var(--void);font-size:14px;opacity:0;pointer-events:none;transition:opacity 300ms ease, transform 600ms var(--ease);}
   .toast.is-on{opacity:1;transform:translate(-50%, 0);}
 
@@ -380,6 +397,10 @@
 </div>
 <div class="beat" id="belief-beat" aria-hidden="true">
   <div><p class="display beat__text" id="belief-beat-text"></p></div>
+</div>
+<div class="collide" id="collide" aria-hidden="true">
+  <div class="collide__flash" id="collide-flash"></div>
+  <p class="display collide__text" id="collide-text"></p>
 </div>
 
 <!-- loader: the last reel picture is the hero's centre card -->
@@ -470,7 +491,7 @@
 
   <!-- ============ STATEMENT ============ -->
   <section class="statement" aria-label="Statement">
-    <span class="label"><b>·</b> Draft line, yours to rewrite</span>
+    <span class="label"><b>·</b> Premise</span>
     <p class="display" data-split>Creating <span class="red" data-scramble>art</span> that <span class="red" data-scramble>moves</span> <span class="red" data-scramble>people</span>. Records, brands, pictures and rooms.</p>
   </section>
 
@@ -1014,6 +1035,7 @@
     gsap.from('#foot-name .w', { yPercent: 105, duration: 1.4, ease: 'expo.out', stagger: .08, scrollTrigger: { trigger: 'footer', start: 'top 88%', once: true } });
     quoteBeat();
     beliefBeat();
+    collideBeat();
   }
 
   /* ---------- the Colyn quote: a timed moment between About me and Music Producer ----------
@@ -1178,6 +1200,104 @@
         if (played || busy || jumping || $('#loader') || performance.now() - born < 1200 || lenis.scroll > st.start + innerHeight * .7) return;
         play();
       } });
+  }
+
+  /* ---------- the collide beat: a third timed moment, between Podcast and Force of Nature ----------
+     Ported verbatim from the Online Store's own "Where mission and style collide" (Online Store/index.html): under
+     the cover, MISSION and STYLE fly in from either side and smash together at the centre, throwing every letter
+     briefly outward, then settle into the full phrase while WHERE / AND / COLLIDE. decode in around them. Every
+     letter sits in its own fixed-width box so the decode never reflows its neighbours. Lands on the top of Force of
+     Nature, whose own heading repeats the same line as normal underneath (owner's choice: keep both). */
+  function collideBeat() {
+    const box = $('#collide'), text = $('#collide-text'), flash = $('#collide-flash'), fon = $('#fon');
+    if (!box || !fon || !lenis) return;
+    const LINES = PHONE ? [['WHERE'], ['MISSION'], ['AND', 'STYLE'], ['COLLIDE.']] : [['WHERE', 'MISSION'], ['AND', 'STYLE'], ['COLLIDE.']], HIT = { MISSION: 'l', STYLE: 'r' };
+    const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', rnd = (a, b) => a + Math.random() * (b - a);
+    const hitL = [], hitR = [], rest = [];
+    LINES.forEach((words) => {
+      const ln = document.createElement('span'); ln.className = 'ln';
+      words.forEach((word, wi) => {
+        if (wi) ln.append(' ');
+        const w = document.createElement('span'); w.className = 'w';
+        [...word].forEach((c) => {
+          const ch = document.createElement('span'); ch.className = 'ch' + (HIT[word] ? ' hit' : ''); ch.textContent = c; ch.dataset.c = c;
+          (HIT[word] === 'l' ? hitL : HIT[word] === 'r' ? hitR : rest).push(ch); w.append(ch);
+        });
+        ln.append(w);
+      });
+      text.append(ln);
+    });
+    const chars = [...hitL, ...hitR, ...rest];
+    let fs = 100;
+    /* the longest line runs edge to edge (88% of the width), and the block stays inside 80% of the height */
+    function fit() {
+      gsap.set([text, ...chars], { clearProps: 'all' });
+      chars.forEach((ch) => { ch.textContent = ch.dataset.c; });
+      text.style.fontSize = '100px';
+      const w = Math.max(...$$('.ln', text).map((l) => l.getBoundingClientRect().width));
+      fs = 100 * innerWidth * .88 / w; text.style.fontSize = fs + 'px';
+      const h = text.getBoundingClientRect().height, maxH = innerHeight * .8;
+      if (h > maxH) { fs *= maxH / h; text.style.fontSize = fs + 'px'; }
+      chars.forEach((ch) => { ch.style.width = ch.getBoundingClientRect().width.toFixed(2) + 'px'; });
+    }
+    const union = (els) => { const r = els.map((e) => e.getBoundingClientRect()); return { l: Math.min(...r.map((x) => x.left)), r: Math.max(...r.map((x) => x.right)), t: Math.min(...r.map((x) => x.top)), b: Math.max(...r.map((x) => x.bottom)) }; };
+
+    let played = false, busy = false;
+    function play(st) {
+      played = busy = true;
+      lenis.stop(); document.documentElement.classList.add('is-beat-locked'); box.classList.add('is-on');
+      gsap.to(['#cursor', '#peek'], { scale: 0, duration: .2, overwrite: true });
+      fit();
+      /* collision pose: MISSION's right edge and STYLE's left edge meet at the centre of the screen, at mid-height
+         (phone: MISSION's foot and STYLE's head meet there instead, both centred across the width) */
+      const m = union(hitL), s = union(hitR), cx = innerWidth / 2, cy = innerHeight / 2, gap = fs * .03;
+      const mDx = PHONE ? cx - (m.l + m.r) / 2 : cx - gap - m.r, mDy = PHONE ? cy - gap - m.b : cy - (m.t + m.b) / 2;
+      const sDx = PHONE ? cx - (s.l + s.r) / 2 : cx + gap - s.l, sDy = PHONE ? cy + gap - s.t : cy - (s.t + s.b) / 2;
+      const ax = PHONE ? 'y' : 'x', far = PHONE ? innerHeight : innerWidth; // the axis the words travel along
+      const from = (d, sign) => (PHONE ? { x: d.x, y: d.y + sign * far } : { x: d.x + sign * far, y: d.y });
+      const burst = (d, sign) => { const along = sign * rnd(.1, PHONE ? 1.3 : .7) * fs, across = rnd(-1, 1) * fs * (PHONE ? 1.4 : 1); return PHONE ? { x: d.x + across, y: d.y + along } : { x: d.x + along, y: d.y + across }; };
+      const M = { x: mDx, y: mDy }, S = { x: sDx, y: sDy };
+      const land = () => lenis.scrollTo(fon, { immediate: true, force: true });
+      const T = .6; // the moment of impact
+      const tl = gsap.timeline({ onComplete() {
+        box.classList.remove('is-on'); document.documentElement.classList.remove('is-beat-locked');
+        gsap.set(box, { autoAlpha: 0 }); lenis.start(); busy = false; box.onclick = null;
+      } });
+      box.onclick = () => tl.timeScale(4); // a click hurries it along
+      window.__len = Object.assign(window.__len || {}, { collide: tl }); // capture tools pause and step this
+      tl.set(rest, { opacity: 0 })
+        .set(hitL, from(M, -1))
+        .set(hitR, from(S, 1))
+        .to(box, { autoAlpha: 1, duration: .2, ease: 'power1.out' }, 0)
+        .to(hitL, { [ax]: M[ax], duration: T - .15, ease: 'power3.in' }, .15)
+        .to(hitR, { [ax]: S[ax], duration: T - .15, ease: 'power3.in' }, .15)
+        .add(land, .3)
+        /* impact: flash, shake, and every letter is thrown back the way it came */
+        .fromTo(flash, { scale: 0, opacity: 1 }, { scale: 1, opacity: 0, duration: .9, ease: 'power3.out' }, T)
+        .to(text, { keyframes: { x: [0, -fs * .09, fs * .07, -fs * .04, fs * .02, 0] }, duration: .34, ease: 'none' }, T);
+      hitL.forEach((ch) => tl.to(ch, { ...burst(M, -1), rotation: rnd(-80, 80), duration: .3, ease: 'expo.out' }, T));
+      hitR.forEach((ch) => tl.to(ch, { ...burst(S, 1), rotation: rnd(-80, 80), duration: .3, ease: 'expo.out' }, T));
+      /* the letters fall into their places in the phrase while the other words decode around them */
+      tl.to([...hitL, ...hitR], { x: 0, y: 0, rotation: 0, duration: .55, ease: 'expo.inOut', stagger: .012 }, T + .28);
+      rest.forEach((ch, i) => {
+        const at = T + .4 + i * .02, final = ch.dataset.c;
+        tl.set(ch, { opacity: 1 }, at)
+          .to({}, { duration: .45, onUpdate() { ch.textContent = this.progress() < 1 && final !== '.' ? ABC[Math.floor(Math.random() * 26)] : final; } }, at);
+      });
+      /* the finished phrase holds for a beat, then lifts out and Force of Nature is underneath */
+      tl.add(land, T + 1.6)
+        .to(text, { yPercent: -12, autoAlpha: 0, duration: .4, ease: 'power3.in' }, T + 1.75)
+        .to(box, { autoAlpha: 0, duration: .25 }, '<');
+    }
+    const born = performance.now();
+    ScrollTrigger.create({ trigger: fon, start: 'top 85%',
+      onEnter(st) {
+        /* only a real scroll down out of Podcast: not a reload further down the page, not a menu jump */
+        if (played || busy || jumping || $('#loader') || performance.now() - born < 1200 || lenis.scroll > st.start + innerHeight * .7) return;
+        play(st);
+      } });
+    let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!busy) fit(); }, 200); });
+    document.fonts.ready.then(fit);
   }
 
   /* ---------- intro ---------- */
